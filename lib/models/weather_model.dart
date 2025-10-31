@@ -11,6 +11,8 @@ class Weather {
   final DateTime sunrise;
   final DateTime sunset;
   final String icon;
+  final double latitude; // Thêm latitude
+  final double longitude; // Thêm longitude
 
   Weather({
     required this.cityName,
@@ -25,6 +27,8 @@ class Weather {
     required this.sunrise,
     required this.sunset,
     required this.icon,
+    required this.latitude,
+    required this.longitude,
   });
 
   factory Weather.fromJson(Map<String, dynamic> json) {
@@ -43,6 +47,8 @@ class Weather {
       ),
       sunset: DateTime.fromMillisecondsSinceEpoch(json['sys']['sunset'] * 1000),
       icon: json['weather'][0]['icon'],
+      latitude: json['coord']['lat'].toDouble(), // Thêm lat từ API
+      longitude: json['coord']['lon'].toDouble(), // Thêm lon từ API
     );
   }
 }
