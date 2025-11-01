@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/weather_model.dart';
 import '../models/forecast_model.dart';
 import '../models/air_quality_model.dart';
@@ -9,8 +10,9 @@ import '../widgets/modern_weather_card.dart';
 import '../widgets/modern_forecast_widget.dart';
 import '../utils/app_theme.dart';
 import '../utils/constants.dart';
+import '../utils/unit_converter.dart';
 import 'search_screen.dart';
-import 'settings_screen.dart';
+import 'new_settings_screen.dart';
 
 class ModernHomeScreen extends StatefulWidget {
   const ModernHomeScreen({super.key});
@@ -31,6 +33,16 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
   String _errorMessage = '';
   bool _isFetching = false; // Prevent multiple simultaneous fetches
   DateTime? _lastFetchTime; // Debounce fetches
+  String _detailedAddress = ''; // Store detailed address
+
+  // Unit settings
+  String _temperatureUnit = 'metric'; // 'metric' or 'imperial'
+  String _windSpeedUnit = 'ms'; // 'ms', 'mph', or 'kmh'
+
+  // Last saved location
+  String? _lastSavedCity; // Lưu thành phố cuối cùng
+  double? _lastSavedLat; // Lưu latitude cuối cùng
+  double? _lastSavedLon; // Lưu longitude cuối cùng
 
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
@@ -45,7 +57,28 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
+    _loadSettings();
     _fetchWeather();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _temperatureUnit = prefs.getString('temperatureUnit') ?? 'metric';
+      _windSpeedUnit = prefs.getString('windSpeedUnit') ?? 'ms';
+
+      // Load last saved location
+      _lastSavedCity = prefs.getString('lastCity');
+      _lastSavedLat = prefs.getDouble('lastLat');
+      _lastSavedLon = prefs.getDouble('lastLon');
+    });
+  }
+
+  Future<void> _saveLastLocation(String city, double lat, double lon) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('lastCity', city);
+    await prefs.setDouble('lastLat', lat);
+    await prefs.setDouble('lastLon', lon);
   }
 
   @override
@@ -80,13 +113,37 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     }
 
     try {
-      final position = await _weatherService.getCurrentPosition();
+      double lat, lon;
+
+      // Kiểm tra xem có location đã lưu không
+      if (_lastSavedLat != null && _lastSavedLon != null) {
+        print(
+          'Using saved location: $_lastSavedCity ($_lastSavedLat, $_lastSavedLon)',
+        );
+        lat = _lastSavedLat!;
+        lon = _lastSavedLon!;
+      } else {
+        // Không có location đã lưu, dùng GPS
+        print('No saved location, using GPS...');
+        final position = await _weatherService.getCurrentPosition();
+        lat = position.latitude;
+        lon = position.longitude;
+      }
+
+      // Get detailed address
+      final detailedAddress = await _weatherService.getDetailedAddress(
+        lat,
+        lon,
+      );
 
       // Get comprehensive weather data
       final comprehensiveData = await _weatherService.getComprehensiveWeather(
-        position.latitude,
-        position.longitude,
+        lat,
+        lon,
       );
+
+      // Lưu location này để dùng cho lần sau
+      await _saveLastLocation(detailedAddress, lat, lon);
 
       if (mounted) {
         setState(() {
@@ -95,6 +152,10 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
           _airQuality = comprehensiveData['airQuality'];
           _uvIndex = comprehensiveData['uvIndex'];
           _alerts = comprehensiveData['alerts'];
+          _detailedAddress = detailedAddress;
+          _lastSavedCity = detailedAddress;
+          _lastSavedLat = lat;
+          _lastSavedLon = lon;
           _isLoading = false;
         });
 
@@ -152,9 +213,27 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
 
       try {
         final weather = await _weatherService.getWeather(result);
+
+        // Lấy detailed address từ coordinates của weather
+        final detailedAddress = await _weatherService.getDetailedAddress(
+          weather.latitude,
+          weather.longitude,
+        );
+
+        // Lưu location để dùng cho lần sau
+        await _saveLastLocation(
+          detailedAddress,
+          weather.latitude,
+          weather.longitude,
+        );
+
         if (mounted) {
           setState(() {
             _weather = weather;
+            _detailedAddress = detailedAddress;
+            _lastSavedCity = detailedAddress;
+            _lastSavedLat = weather.latitude;
+            _lastSavedLon = weather.longitude;
             _isLoading = false;
           });
           _fadeController.forward(from: 0);
@@ -173,16 +252,35 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     }
   }
 
-  bool _isNightTime() {
-    final hour = DateTime.now().hour;
-    return hour < 6 || hour > 19;
+  Future<void> _useCurrentLocation() async {
+    // Xóa saved location và dùng GPS
+    if (_isFetching) {
+      print('Already fetching, skipping...');
+      return;
+    }
+
+    setState(() {
+      _lastSavedCity = null;
+      _lastSavedLat = null;
+      _lastSavedLon = null;
+    });
+
+    // Clear saved location từ SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('lastCity');
+    await prefs.remove('lastLat');
+    await prefs.remove('lastLon');
+
+    // Fetch weather từ GPS
+    await _fetchWeather();
   }
 
   @override
   Widget build(BuildContext context) {
-    final gradient = AppTheme.getGradientForWeather(
-      _weather?.mainCondition,
-      _isNightTime(),
+    // Sử dụng gradient động dựa trên thời tiết và thời gian thực
+    final gradient = AppTheme.getDynamicGradient(
+      weatherCondition: _weather?.mainCondition,
+      dateTime: DateTime.now(),
     );
 
     return Scaffold(
@@ -332,11 +430,12 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                   horizontal: AppTheme.spacingM,
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start, // Giữ start cho các phần khác
                   children: [
                     const SizedBox(height: AppTheme.spacingL),
-                    // Hero Weather Card
-                    _buildHeroSection(),
+                    // Hero Weather Card - Căn giữa riêng
+                    Center(child: _buildHeroSection()),
                     const SizedBox(height: AppTheme.spacingXL),
                     // Weather Alerts (if any)
                     if (_alerts != null && _alerts!.isNotEmpty) ...[
@@ -387,7 +486,9 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                     const SizedBox(width: AppTheme.spacingXS),
                     Expanded(
                       child: Text(
-                        _weather?.cityName ?? 'Unknown',
+                        _detailedAddress.isNotEmpty
+                            ? _detailedAddress
+                            : (_weather?.cityName ?? 'Unknown'),
                         style: AppTheme.headlineSmall,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -407,6 +508,20 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
           // Action Buttons
           Row(
             children: [
+              // My Location Button - GPS
+              IconButton(
+                onPressed: _useCurrentLocation,
+                icon: const Icon(Icons.my_location),
+                color: AppTheme.white,
+                iconSize: 28,
+                style: IconButton.styleFrom(
+                  backgroundColor: AppTheme.white.withOpacity(0.2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacingS),
               IconButton(
                 onPressed: _searchCity,
                 icon: const Icon(Icons.search),
@@ -421,13 +536,16 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
               ),
               const SizedBox(width: AppTheme.spacingS),
               IconButton(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const SettingsScreen(),
+                      builder: (context) => const NewSettingsScreen(),
                     ),
                   );
+                  // Reload settings and rebuild when returning from settings
+                  await _loadSettings();
+                  setState(() {});
                 },
                 icon: const Icon(Icons.settings_outlined),
                 color: AppTheme.white,
@@ -449,18 +567,42 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
   Widget _buildHeroSection() {
     if (_weather == null) return const SizedBox.shrink();
 
+    final temp = UnitConverter.formatTemperature(
+      _weather!.temperature,
+      _temperatureUnit,
+    );
+    final tempUnit = UnitConverter.getTemperatureUnit(_temperatureUnit);
+    final feelsLike = UnitConverter.formatTemperature(
+      _weather!.feelsLike,
+      _temperatureUnit,
+    );
+    final high = UnitConverter.formatTemperature(
+      _weather!.temperature + 3,
+      _temperatureUnit,
+    );
+    final low = UnitConverter.formatTemperature(
+      _weather!.temperature - 5,
+      _temperatureUnit,
+    );
+
     return HeroWeatherCard(
-      temperature: _weather!.temperature.round().toString(),
+      temperature: '$temp$tempUnit',
       condition: _weather!.mainCondition,
-      feelsLike: _weather!.feelsLike.round().toString(),
-      high: (_weather!.temperature + 3).round().toString(), // Mock data
-      low: (_weather!.temperature - 5).round().toString(), // Mock data
+      feelsLike: '$feelsLike$tempUnit',
+      high: '$high$tempUnit',
+      low: '$low$tempUnit',
       weatherIcon: AppTheme.getWeatherIcon(_weather!.mainCondition),
     );
   }
 
   Widget _buildInfoChipsRow() {
     if (_weather == null) return const SizedBox.shrink();
+
+    final windSpeed = UnitConverter.formatWindSpeed(
+      _weather!.windSpeed,
+      _windSpeedUnit,
+    );
+    final windUnit = UnitConverter.getWindSpeedUnit(_windSpeedUnit);
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -474,7 +616,7 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
           const SizedBox(width: AppTheme.spacingS),
           InfoChipCard(
             label: 'Gió',
-            value: '${_weather!.windSpeed.toStringAsFixed(1)} m/s',
+            value: '$windSpeed $windUnit',
             icon: Icons.air,
           ),
           const SizedBox(width: AppTheme.spacingS),
@@ -547,24 +689,40 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
   Widget _buildDetailsGrid() {
     if (_weather == null) return const SizedBox.shrink();
 
+    final feelsLike = UnitConverter.formatTemperature(
+      _weather!.feelsLike,
+      _temperatureUnit,
+    );
+    final tempUnit = UnitConverter.getTemperatureUnit(_temperatureUnit);
+    final windSpeed = UnitConverter.formatWindSpeed(
+      _weather!.windSpeed,
+      _windSpeedUnit,
+    );
+    final windUnit = UnitConverter.getWindSpeedUnit(_windSpeedUnit);
+    final visibility = UnitConverter.formatVisibility(
+      _weather!.visibility.toDouble(),
+      _temperatureUnit,
+    );
+    final visibilityUnit = UnitConverter.getVisibilityUnit(_temperatureUnit);
+
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: AppTheme.spacingM,
       crossAxisSpacing: AppTheme.spacingM,
-      childAspectRatio: 1.5,
+      childAspectRatio: 1.8, // Tăng tỷ lệ để cards thấp hơn, tránh overflow
       children: [
         ModernWeatherCard(
           title: 'Cảm giác như',
-          value: '${_weather!.feelsLike.round()}°',
+          value: '$feelsLike$tempUnit',
           icon: Icons.thermostat,
           iconColor: Colors.orange[300],
         ),
         ModernWeatherCard(
           title: 'Tốc độ gió',
-          value: '${_weather!.windSpeed.toStringAsFixed(1)}',
-          subtitle: 'm/s',
+          value: windSpeed,
+          subtitle: windUnit,
           icon: Icons.air,
           iconColor: Colors.blue[300],
         ),
@@ -577,8 +735,8 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
         ),
         ModernWeatherCard(
           title: 'Tầm nhìn',
-          value: '${(_weather!.visibility / 1000).toStringAsFixed(1)}',
-          subtitle: 'km',
+          value: visibility,
+          subtitle: visibilityUnit,
           icon: Icons.visibility,
           iconColor: Colors.green[300],
         ),
