@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/background_preview_widget.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -68,13 +69,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _buildSettingsCard([_buildNotificationsSetting()]),
                     const SizedBox(height: 24),
                     _buildSectionTitle('Giao diện'),
-                    _buildSettingsCard([_buildDarkModeSetting()]),
+                    _buildSettingsCard([
+                      _buildDarkModeSetting(),
+                      const Divider(color: Colors.white24, height: 1),
+                      _buildBackgroundPreviewButton(),
+                    ]),
                     const SizedBox(height: 24),
                     _buildSectionTitle('Thông tin'),
                     _buildSettingsCard([
-                      _buildInfoItem('Phiên bản', '1.0.0'),
+                      _buildInfoItem('Phiên bản', '1.0.1'),
                       const Divider(color: Colors.white24, height: 1),
-                      _buildInfoItem('Nhà phát triển', 'Weather App Team'),
+                      _buildInfoItem('Nhà phát triển', 'Nam và Vóc'),
                     ]),
                     const SizedBox(height: 24),
                     _buildAboutSection(),
@@ -228,6 +233,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _darkMode = value;
         });
         _saveSettings();
+      },
+    );
+  }
+
+  Widget _buildBackgroundPreviewButton() {
+    return ListTile(
+      leading: const Icon(Icons.palette, color: Colors.white),
+      title: const Text(
+        'Xem Background Động',
+        style: TextStyle(color: Colors.white),
+      ),
+      subtitle: const Text(
+        'Xem tất cả các background theo thời tiết và thời gian',
+        style: TextStyle(color: Colors.white70, fontSize: 12),
+      ),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        color: Colors.white,
+        size: 16,
+      ),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const BackgroundPreviewWidget(),
+          ),
+        );
       },
     );
   }
