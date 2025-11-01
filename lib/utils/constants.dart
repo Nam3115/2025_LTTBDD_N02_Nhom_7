@@ -47,4 +47,15 @@ class Constants {
         return '🌤️';
     }
   }
+
+  /// Lấy emoji theo thời gian trong ngày
+  static String getTimeOfDayEmoji(int hour) {
+    if (hour >= 5 && hour < 7) return '🌅'; // Bình minh
+    if (hour >= 7 && hour < 11) return '☀️'; // Buổi sáng
+    if (hour >= 11 && hour < 15) return '🌞'; // Ban trưa
+    if (hour >= 15 && hour < 18) return '🌇'; // Chiều tà
+    if (hour >= 18 && hour < 19.5) return '🌆'; // Hoàng hôn
+    if (hour >= 19.5 && hour < 21) return '🌃'; // Chạng vạng
+    return '🌙'; // Ban đêm
+  }
 }
