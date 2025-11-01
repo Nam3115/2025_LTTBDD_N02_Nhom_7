@@ -27,7 +27,7 @@ class ModernWeatherCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.all(
-          isLarge ? AppTheme.spacingL : AppTheme.spacingM,
+          isLarge ? AppTheme.spacingM : 10, // Giảm padding
         ),
         decoration: AppTheme.glassmorphicCard,
         child: Column(
@@ -38,7 +38,7 @@ class ModernWeatherCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(5), // Giảm từ 6 xuống 5
                   decoration: BoxDecoration(
                     color: (iconColor ?? AppTheme.white).withOpacity(0.2),
                     borderRadius: BorderRadius.circular(AppTheme.radiusM),
@@ -46,39 +46,55 @@ class ModernWeatherCard extends StatelessWidget {
                   child: Icon(
                     icon,
                     color: iconColor ?? AppTheme.white,
-                    size: isLarge ? 24 : 20,
+                    size: isLarge ? 18 : 16, // Giảm size icon
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 6), // Giảm từ 8 xuống 6
                 Expanded(
                   child: Text(
                     title,
                     style: isLarge
                         ? AppTheme.titleMedium.copyWith(
                             color: AppTheme.white.withOpacity(0.8),
+                            fontSize: 13, // Giảm từ 14 xuống 13
+                            height: 1.0,
                           )
                         : AppTheme.bodyMedium.copyWith(
                             color: AppTheme.white.withOpacity(0.8),
+                            fontSize: 11, // Giảm từ 12 xuống 11
+                            height: 1.0,
                           ),
                     overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: isLarge ? AppTheme.spacingM : AppTheme.spacingS),
+            SizedBox(height: isLarge ? 8 : 5), // Giảm spacing
             // Value
             Text(
               value,
-              style: isLarge ? AppTheme.headlineMedium : AppTheme.headlineSmall,
+              style:
+                  (isLarge ? AppTheme.headlineMedium : AppTheme.headlineSmall)
+                      .copyWith(
+                        fontSize: isLarge ? 26 : 22, // Giảm font size
+                        height: 1.0,
+                      ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             // Subtitle (optional)
             if (subtitle != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 subtitle!,
                 style: AppTheme.bodySmall.copyWith(
                   color: AppTheme.white.withOpacity(0.7),
+                  fontSize: 10, // Giảm từ 11 xuống 10
+                  height: 1.0,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ],
@@ -106,14 +122,18 @@ class CompactWeatherCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingM,
-        vertical: AppTheme.spacingS,
+        horizontal: 8, // Giảm từ 10 xuống 8
+        vertical: 5, // Giảm từ 6 xuống 5
       ),
       decoration: AppTheme.glassmorphicCard,
       child: Row(
         children: [
-          Icon(icon, color: iconColor ?? AppTheme.white, size: 20),
-          const SizedBox(width: AppTheme.spacingS),
+          Icon(
+            icon,
+            color: iconColor ?? AppTheme.white,
+            size: 15, // Giảm từ 16 xuống 15
+          ),
+          const SizedBox(width: 5), // Giảm từ 6 xuống 5
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,10 +143,21 @@ class CompactWeatherCard extends StatelessWidget {
                   label,
                   style: AppTheme.bodySmall.copyWith(
                     color: AppTheme.white.withOpacity(0.7),
+                    fontSize: 9, // Giảm từ 10 xuống 9
+                    height: 1.0, // Giảm line height
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
-                Text(value, style: AppTheme.titleMedium),
+                Text(
+                  value,
+                  style: AppTheme.titleMedium.copyWith(
+                    fontSize: 13, // Giảm từ 14 xuống 13
+                    height: 1.2, // Giảm line height
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -162,6 +193,9 @@ class HeroWeatherCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(32),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center, // Căn giữa theo chiều dọc
+        crossAxisAlignment:
+            CrossAxisAlignment.center, // Căn giữa theo chiều ngang
         children: [
           // Weather Icon
           Container(
@@ -173,14 +207,11 @@ class HeroWeatherCard extends StatelessWidget {
             child: Icon(weatherIcon, size: 80, color: AppTheme.white),
           ),
           const SizedBox(height: AppTheme.spacingL),
-          // Temperature
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(temperature, style: AppTheme.displayLarge),
-              Text('°', style: AppTheme.displayMedium.copyWith(fontSize: 48)),
-            ],
+          // Temperature - No degree symbol needed, already included
+          Text(
+            temperature,
+            style: AppTheme.displayLarge,
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppTheme.spacingS),
           // Condition
@@ -189,14 +220,16 @@ class HeroWeatherCard extends StatelessWidget {
             style: AppTheme.headlineSmall.copyWith(
               color: AppTheme.white.withOpacity(0.9),
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppTheme.spacingXS),
           // Feels Like
           Text(
-            'Cảm giác như $feelsLike°',
+            'Cảm giác như $feelsLike',
             style: AppTheme.bodyLarge.copyWith(
               color: AppTheme.white.withOpacity(0.7),
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppTheme.spacingL),
           // High/Low
@@ -218,7 +251,7 @@ class HeroWeatherCard extends StatelessWidget {
                   size: 20,
                 ),
                 const SizedBox(width: 4),
-                Text('$high°', style: AppTheme.titleLarge),
+                Text(high, style: AppTheme.titleLarge),
                 const SizedBox(width: AppTheme.spacingL),
                 Icon(
                   Icons.arrow_downward,
@@ -226,7 +259,7 @@ class HeroWeatherCard extends StatelessWidget {
                   size: 20,
                 ),
                 const SizedBox(width: 4),
-                Text('$low°', style: AppTheme.titleLarge),
+                Text(low, style: AppTheme.titleLarge),
               ],
             ),
           ),
