@@ -313,4 +313,99 @@ class WeatherService {
     _cachedPermission = null;
     _isRequestingPermission = false;
   }
+
+  // Get detailed address from coordinates
+  Future<String> getDetailedAddress(double lat, double lon) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
+
+      if (placemarks.isEmpty) {
+        return 'Unknown Location';
+      }
+
+      Placemark place = placemarks[0];
+
+      // Build detailed address
+      List<String> addressParts = [];
+
+      // Debug log to see what we get
+      print('=== GEOCODING DEBUG ===');
+      print('subLocality: ${place.subLocality}');
+      print('locality: ${place.locality}');
+      print('thoroughfare: ${place.thoroughfare}');
+      print('subThoroughfare: ${place.subThoroughfare}');
+      print('subAdministrativeArea: ${place.subAdministrativeArea}');
+      print('administrativeArea: ${place.administrativeArea}');
+      print('====================');
+
+      // Add subLocality (quận/huyện/phường level detail)
+      if (place.subLocality != null && place.subLocality!.isNotEmpty) {
+        addressParts.add(place.subLocality!);
+      } else if (place.thoroughfare != null && place.thoroughfare!.isNotEmpty) {
+        // Fallback to thoroughfare (street/ward name)
+        addressParts.add(place.thoroughfare!);
+      }
+
+      // Add locality (city)
+      if (place.locality != null && place.locality!.isNotEmpty) {
+        addressParts.add(place.locality!);
+      } else if (place.subAdministrativeArea != null &&
+          place.subAdministrativeArea!.isNotEmpty) {
+        addressParts.add(place.subAdministrativeArea!);
+      }
+
+      // Add administrativeArea (province/state)
+      if (place.administrativeArea != null &&
+          place.administrativeArea!.isNotEmpty) {
+        addressParts.add(place.administrativeArea!);
+      }
+
+      // Return formatted address
+      if (addressParts.isEmpty) {
+        return place.country ?? 'Unknown Location';
+      }
+
+      return addressParts.join(', ');
+    } catch (e) {
+      print('Error getting detailed address: $e');
+      return 'Unknown Location';
+    }
+  }
+
+  // Get short location name (for display)
+  Future<String> getShortLocationName(double lat, double lon) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
+
+      if (placemarks.isEmpty) {
+        return 'Unknown';
+      }
+
+      Placemark place = placemarks[0];
+
+      // Priority: subLocality > locality > subAdministrativeArea > administrativeArea
+      if (place.subLocality != null && place.subLocality!.isNotEmpty) {
+        return place.subLocality!;
+      }
+
+      if (place.locality != null && place.locality!.isNotEmpty) {
+        return place.locality!;
+      }
+
+      if (place.subAdministrativeArea != null &&
+          place.subAdministrativeArea!.isNotEmpty) {
+        return place.subAdministrativeArea!;
+      }
+
+      if (place.administrativeArea != null &&
+          place.administrativeArea!.isNotEmpty) {
+        return place.administrativeArea!;
+      }
+
+      return place.country ?? 'Unknown';
+    } catch (e) {
+      print('Error getting short location name: $e');
+      return 'Unknown';
+    }
+  }
 }
