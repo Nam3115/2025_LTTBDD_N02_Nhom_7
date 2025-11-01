@@ -44,7 +44,7 @@ class ModernHourlyForecast extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spacingM),
           SizedBox(
-            height: 140,
+            height: 110, // Giảm xuống 110 để chắc chắn
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(
@@ -57,12 +57,9 @@ class ModernHourlyForecast extends StatelessWidget {
                 final isNow = index == 0;
 
                 return Container(
-                  width: 80,
+                  width: 68, // Giảm từ 70 xuống 68
                   margin: const EdgeInsets.only(right: AppTheme.spacingM),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppTheme.spacingM,
-                    horizontal: AppTheme.spacingS,
-                  ),
+                  padding: const EdgeInsets.all(8), // Đơn giản hóa padding
                   decoration: AppTheme.glassmorphicCard.copyWith(
                     color: isNow
                         ? AppTheme.white.withOpacity(0.25)
@@ -70,7 +67,10 @@ class ModernHourlyForecast extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppTheme.radiusXL),
                   ),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisAlignment:
+                        MainAxisAlignment.spaceAround, // Dùng spaceAround
+                    mainAxisSize:
+                        MainAxisSize.max, // Cho phép expand full height
                     children: [
                       // Time
                       Text(
@@ -79,12 +79,14 @@ class ModernHourlyForecast extends StatelessWidget {
                           color: isNow
                               ? AppTheme.white
                               : AppTheme.white.withOpacity(0.8),
+                          fontSize: 10,
                         ),
+                        maxLines: 1,
                       ),
                       // Weather Icon
                       BoxedIcon(
                         _getWeatherIcon(forecast.mainCondition),
-                        size: 32,
+                        size: 24, // Giảm từ 26 xuống 24
                         color: AppTheme.white,
                       ),
                       // Temperature
@@ -92,7 +94,9 @@ class ModernHourlyForecast extends StatelessWidget {
                         '${forecast.temperature.round()}°',
                         style: AppTheme.titleLarge.copyWith(
                           fontWeight: isNow ? FontWeight.bold : FontWeight.w600,
+                          fontSize: 14, // Giảm từ 15 xuống 14
                         ),
+                        maxLines: 1,
                       ),
                       // Humidity
                       Row(
@@ -100,7 +104,7 @@ class ModernHourlyForecast extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.water_drop,
-                            size: 12,
+                            size: 8, // Giảm từ 9 xuống 8
                             color: AppTheme.white.withOpacity(0.7),
                           ),
                           const SizedBox(width: 2),
@@ -108,7 +112,9 @@ class ModernHourlyForecast extends StatelessWidget {
                             '${forecast.humidity}%',
                             style: AppTheme.bodySmall.copyWith(
                               color: AppTheme.white.withOpacity(0.7),
+                              fontSize: 9,
                             ),
+                            maxLines: 1,
                           ),
                         ],
                       ),
