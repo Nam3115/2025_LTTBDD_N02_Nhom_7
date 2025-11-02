@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/forecast_model.dart';
 import '../utils/app_theme.dart';
 import 'package:weather_icons/weather_icons.dart';
+import '../l10n/app_localizations.dart';
 
 class ModernHourlyForecast extends StatelessWidget {
   final List<HourlyForecast> forecasts;
@@ -33,6 +34,7 @@ class ModernHourlyForecast extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
       child: Column(
@@ -40,7 +42,7 @@ class ModernHourlyForecast extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: AppTheme.spacingM),
-            child: Text('Dự báo theo giờ', style: AppTheme.titleLarge),
+            child: Text(l10n.hourlyForecast, style: AppTheme.titleLarge),
           ),
           const SizedBox(height: AppTheme.spacingM),
           SizedBox(
@@ -74,7 +76,7 @@ class ModernHourlyForecast extends StatelessWidget {
                     children: [
                       // Time
                       Text(
-                        isNow ? 'Bây giờ' : time,
+                        isNow ? l10n.now : time,
                         style: AppTheme.labelMedium.copyWith(
                           color: isNow
                               ? AppTheme.white
@@ -157,20 +159,24 @@ class ModernDailyForecast extends StatelessWidget {
     }
   }
 
-  String _getDayName(DateTime date) {
+  String _getDayName(DateTime date, BuildContext context) {
     final now = DateTime.now();
     if (date.day == now.day &&
         date.month == now.month &&
         date.year == now.year) {
-      return 'Hôm nay';
+      return AppLocalizations.of(context)!.today;
     } else if (date.day == now.add(const Duration(days: 1)).day) {
-      return 'Ngày mai';
+      return AppLocalizations.of(context)!.tomorrow;
     }
-    return DateFormat('EEEE', 'vi_VN').format(date);
+    return DateFormat(
+      'EEEE',
+      Localizations.localeOf(context).toString(),
+    ).format(date);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
       child: Column(
@@ -178,7 +184,7 @@ class ModernDailyForecast extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: AppTheme.spacingM),
-            child: Text('Dự báo 7 ngày', style: AppTheme.titleLarge),
+            child: Text(l10n.dailyForecast, style: AppTheme.titleLarge),
           ),
           const SizedBox(height: AppTheme.spacingM),
           Container(
@@ -197,7 +203,7 @@ class ModernDailyForecast extends StatelessWidget {
                       Expanded(
                         flex: 3,
                         child: Text(
-                          _getDayName(forecast.date),
+                          _getDayName(forecast.date, context),
                           style: AppTheme.bodyLarge,
                         ),
                       ),
