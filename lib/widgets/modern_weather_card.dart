@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/app_theme.dart';
+import '../l10n/app_localizations.dart';
 
 class ModernWeatherCard extends StatelessWidget {
   final String title;
@@ -225,7 +226,7 @@ class HeroWeatherCard extends StatelessWidget {
           const SizedBox(height: AppTheme.spacingXS),
           // Feels Like
           Text(
-            'Cảm giác như $feelsLike',
+            '${AppLocalizations.of(context)!.feelsLike} $feelsLike',
             style: AppTheme.bodyLarge.copyWith(
               color: AppTheme.white.withOpacity(0.7),
             ),
