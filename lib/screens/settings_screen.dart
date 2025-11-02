@@ -1,99 +1,160 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../widgets/background_preview_widget.dart';
+import 'package:intl/intl.dart';
+import '../l10n/app_localizations.dart';
+import '../models/weather_model.dart';
+import '../models/air_quality_model.dart';
+import '../models/advanced_weather_model.dart';
+import '../models/forecast_model.dart';
+import '../widgets/hourly_forecast_widget.dart';
+import '../widgets/weather_detail_card.dart';
+import '../widgets/air_quality_card.dart';
+import '../widgets/uv_index_card.dart';
+import '../widgets/weather_alerts_widget.dart';
+import '../widgets/weather_animations.dart';
 
-class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+class WeatherDetailScreen extends StatefulWidget {
+  final Weather weather;
+  final List<HourlyForecast> hourlyForecasts;
+  final AirQuality? airQuality;
+  final UVIndex? uvIndex;
+  final List<WeatherAlert>? alerts;
+
+  const WeatherDetailScreen({
+    super.key,
+    required this.weather,
+    required this.hourlyForecasts,
+    this.airQuality,
+    this.uvIndex,
+    this.alerts,
+  });
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  State<WeatherDetailScreen> createState() => _WeatherDetailScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notificationsEnabled = true;
-  String _temperatureUnit = 'metric'; // metric or imperial
-  String _windSpeedUnit = 'ms'; // m/s or mph
-  bool _darkMode = false;
+class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
+  LinearGradient _getGradientForWeather(String? condition) {
+    if (condition == null) {
+      return const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF4A90E2), Color(0xFF50C9C3)],
+      );
+    }
 
-  @override
-  void initState() {
-    super.initState();
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _notificationsEnabled = prefs.getBool('notifications') ?? true;
-      _temperatureUnit = prefs.getString('temperatureUnit') ?? 'metric';
-      _windSpeedUnit = prefs.getString('windSpeedUnit') ?? 'ms';
-      _darkMode = prefs.getBool('darkMode') ?? false;
-    });
-  }
-
-  Future<void> _saveSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('notifications', _notificationsEnabled);
-    await prefs.setString('temperatureUnit', _temperatureUnit);
-    await prefs.setString('windSpeedUnit', _windSpeedUnit);
-    await prefs.setBool('darkMode', _darkMode);
+    switch (condition.toLowerCase()) {
+      case 'clear':
+        return const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF2E5CFF), Color(0xFF47B5FF)],
+        );
+      case 'clouds':
+        return const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF6B7F9C), Color(0xFF99A8B9)],
+        );
+      case 'rain':
+      case 'drizzle':
+        return const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF2C3E50), Color(0xFF4CA1AF)],
+        );
+      case 'thunderstorm':
+        return const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF141E30), Color(0xFF243B55)],
+        );
+      case 'snow':
+        return const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFE6F3FF), Color(0xFFB3D9FF)],
+        );
+      default:
+        return const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF4A90E2), Color(0xFF50C9C3)],
+        );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF4A90E2), Color(0xFF50C9C3)],
-          ),
+        decoration: BoxDecoration(
+          gradient: _getGradientForWeather(widget.weather.mainCondition),
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildAppBar(),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    _buildSectionTitle('Đơn vị đo'),
-                    _buildSettingsCard([
-                      _buildTemperatureUnitSetting(),
-                      const Divider(color: Colors.white24, height: 1),
-                      _buildWindSpeedUnitSetting(),
-                    ]),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('Thông báo'),
-                    _buildSettingsCard([_buildNotificationsSetting()]),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('Giao diện'),
-                    _buildSettingsCard([
-                      _buildDarkModeSetting(),
-                      const Divider(color: Colors.white24, height: 1),
-                      _buildBackgroundPreviewButton(),
-                    ]),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('Thông tin'),
-                    _buildSettingsCard([
-                      _buildInfoItem('Phiên bản', '1.0.1'),
-                      const Divider(color: Colors.white24, height: 1),
-                      _buildInfoItem('Nhà phát triển', 'Nam và Vóc'),
-                    ]),
-                    const SizedBox(height: 24),
-                    _buildAboutSection(),
-                  ],
-                ),
+        child: Stack(
+          children: [
+            // Weather animations
+            Positioned.fill(
+              child: WeatherAnimations(
+                weatherCondition: widget.weather.mainCondition,
               ),
-            ],
-          ),
+            ),
+            // Content
+            SafeArea(
+              child: Column(
+                children: [
+                  _buildAppBar(l10n),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildMainWeatherInfo(),
+                          const SizedBox(height: 24),
+                          if (widget.alerts != null &&
+                              widget.alerts!.isNotEmpty) ...[
+                            WeatherAlertsWidget(alerts: widget.alerts!),
+                            const SizedBox(height: 24),
+                          ],
+                          Text(
+                            l10n.hourlyForecast,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          HourlyForecastWidget(
+                            forecasts: widget.hourlyForecasts,
+                          ),
+                          const SizedBox(height: 24),
+                          if (widget.airQuality != null) ...[
+                            AirQualityCard(airQuality: widget.airQuality!),
+                            const SizedBox(height: 16),
+                          ],
+                          if (widget.uvIndex != null) ...[
+                            UVIndexCard(uvIndex: widget.uvIndex!),
+                            const SizedBox(height: 16),
+                          ],
+                          _buildWeatherDetails(),
+                          const SizedBox(height: 24),
+                          _buildSunInfo(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildAppBar(AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -103,205 +164,175 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           const SizedBox(width: 8),
-          const Text(
-            'Cài đặt',
-            style: TextStyle(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.weather.cityName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                DateFormat(
+                  'EEEE, d MMMM yyyy',
+                  Localizations.localeOf(context).toString(),
+                ).format(DateTime.now()),
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainWeatherInfo() {
+    return Center(
+      child: Column(
+        children: [
+          Image.network(
+            'https://openweathermap.org/img/wn/${widget.weather.icon}@4x.png',
+            width: 150,
+            height: 150,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(Icons.wb_sunny, color: Colors.white, size: 100);
+            },
+          ),
+          Text(
+            '${widget.weather.temperature.round()}°',
+            style: const TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: 72,
               fontWeight: FontWeight.bold,
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingsCard(List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
-      ),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _buildTemperatureUnitSetting() {
-    return ListTile(
-      leading: const Icon(Icons.thermostat, color: Colors.white),
-      title: const Text(
-        'Đơn vị nhiệt độ',
-        style: TextStyle(color: Colors.white),
-      ),
-      trailing: DropdownButton<String>(
-        value: _temperatureUnit,
-        dropdownColor: const Color(0xFF4A90E2),
-        style: const TextStyle(color: Colors.white),
-        underline: Container(),
-        items: const [
-          DropdownMenuItem(value: 'metric', child: Text('Celsius (°C)')),
-          DropdownMenuItem(value: 'imperial', child: Text('Fahrenheit (°F)')),
-        ],
-        onChanged: (value) {
-          setState(() {
-            _temperatureUnit = value!;
-          });
-          _saveSettings();
-        },
-      ),
-    );
-  }
-
-  Widget _buildWindSpeedUnitSetting() {
-    return ListTile(
-      leading: const Icon(Icons.air, color: Colors.white),
-      title: const Text(
-        'Đơn vị tốc độ gió',
-        style: TextStyle(color: Colors.white),
-      ),
-      trailing: DropdownButton<String>(
-        value: _windSpeedUnit,
-        dropdownColor: const Color(0xFF4A90E2),
-        style: const TextStyle(color: Colors.white),
-        underline: Container(),
-        items: const [
-          DropdownMenuItem(value: 'ms', child: Text('m/s')),
-          DropdownMenuItem(value: 'mph', child: Text('mph')),
-          DropdownMenuItem(value: 'kmh', child: Text('km/h')),
-        ],
-        onChanged: (value) {
-          setState(() {
-            _windSpeedUnit = value!;
-          });
-          _saveSettings();
-        },
-      ),
-    );
-  }
-
-  Widget _buildNotificationsSetting() {
-    return SwitchListTile(
-      secondary: const Icon(Icons.notifications, color: Colors.white),
-      title: const Text(
-        'Thông báo thời tiết',
-        style: TextStyle(color: Colors.white),
-      ),
-      subtitle: const Text(
-        'Nhận thông báo về thời tiết hàng ngày',
-        style: TextStyle(color: Colors.white70, fontSize: 12),
-      ),
-      value: _notificationsEnabled,
-      activeThumbColor: Colors.white,
-      activeTrackColor: Colors.white.withOpacity(0.5),
-      onChanged: (value) {
-        setState(() {
-          _notificationsEnabled = value;
-        });
-        _saveSettings();
-      },
-    );
-  }
-
-  Widget _buildDarkModeSetting() {
-    return SwitchListTile(
-      secondary: const Icon(Icons.dark_mode, color: Colors.white),
-      title: const Text('Chế độ tối', style: TextStyle(color: Colors.white)),
-      subtitle: const Text(
-        'Tự động chuyển sang chế độ tối vào ban đêm',
-        style: TextStyle(color: Colors.white70, fontSize: 12),
-      ),
-      value: _darkMode,
-      activeThumbColor: Colors.white,
-      activeTrackColor: Colors.white.withOpacity(0.5),
-      onChanged: (value) {
-        setState(() {
-          _darkMode = value;
-        });
-        _saveSettings();
-      },
-    );
-  }
-
-  Widget _buildBackgroundPreviewButton() {
-    return ListTile(
-      leading: const Icon(Icons.palette, color: Colors.white),
-      title: const Text(
-        'Xem Background Động',
-        style: TextStyle(color: Colors.white),
-      ),
-      subtitle: const Text(
-        'Xem tất cả các background theo thời tiết và thời gian',
-        style: TextStyle(color: Colors.white70, fontSize: 12),
-      ),
-      trailing: const Icon(
-        Icons.arrow_forward_ios,
-        color: Colors.white,
-        size: 16,
-      ),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const BackgroundPreviewWidget(),
+          Text(
+            widget.weather.description,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 8),
+          Text(
+            '${AppLocalizations.of(context)!.feelsLike} ${widget.weather.feelsLike.round()}°',
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildInfoItem(String title, String value) {
-    return ListTile(
-      title: Text(title, style: const TextStyle(color: Colors.white)),
-      trailing: Text(value, style: const TextStyle(color: Colors.white70)),
+  Widget _buildWeatherDetails() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.weatherDetails,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: 1.5,
+          children: [
+            WeatherDetailCard(
+              icon: Icons.water_drop,
+              title: AppLocalizations.of(context)!.humidity,
+              value: '${widget.weather.humidity}%',
+            ),
+            WeatherDetailCard(
+              icon: Icons.air,
+              title: AppLocalizations.of(context)!.windSpeed,
+              value: '${widget.weather.windSpeed.toStringAsFixed(1)} m/s',
+            ),
+            WeatherDetailCard(
+              icon: Icons.compress,
+              title: AppLocalizations.of(context)!.pressure,
+              value:
+                  '${widget.weather.pressure} ${AppLocalizations.of(context)!.hectopascal}',
+            ),
+            WeatherDetailCard(
+              icon: Icons.visibility,
+              title: AppLocalizations.of(context)!.visibility,
+              value:
+                  '${(widget.weather.visibility / 1000).toStringAsFixed(1)} ${AppLocalizations.of(context)!.kilometer}',
+            ),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _buildAboutSection() {
+  Widget _buildSunInfo() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          const Text(
-            'Về ứng dụng',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+          Column(
+            children: [
+              const Icon(
+                Icons.wb_twilight,
+                color: Colors.orangeAccent,
+                size: 32,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                AppLocalizations.of(context)!.sunrise,
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                DateFormat('HH:mm').format(widget.weather.sunrise),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          const Text(
-            'Weather App cung cấp thông tin thời tiết chính xác và chi tiết '
-            'với dữ liệu từ OpenWeatherMap API. Ứng dụng cung cấp dự báo '
-            'theo giờ, theo ngày, chỉ số chất lượng không khí, chỉ số UV và '
-            'nhiều tính năng hữu ích khác.',
-            style: TextStyle(color: Colors.white70, height: 1.5),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Data provided by OpenWeatherMap',
-            style: TextStyle(color: Colors.white60, fontSize: 12),
+          Container(height: 60, width: 1, color: Colors.white.withOpacity(0.3)),
+          Column(
+            children: [
+              const Icon(
+                Icons.nights_stay,
+                color: Colors.deepPurpleAccent,
+                size: 32,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                AppLocalizations.of(context)!.sunset,
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                DateFormat('HH:mm').format(widget.weather.sunset),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ],
       ),
