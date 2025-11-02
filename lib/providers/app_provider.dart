@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Provider quản lý theme mode và language
@@ -34,6 +35,11 @@ class AppProvider extends ChangeNotifier {
     final countryCode = prefs.getString('country_code') ?? 'VN';
     _locale = Locale(languageCode, countryCode);
 
+    // Ensure intl uses the stored locale for DateFormat/NumberFormat
+    try {
+      Intl.defaultLocale = _locale.toString();
+    } catch (_) {}
+
     _isInitialized = true;
     notifyListeners();
   }
@@ -54,6 +60,15 @@ class AppProvider extends ChangeNotifier {
     if (_locale == locale) return;
 
     _locale = locale;
+    // Update Intl default locale so DateFormat/NumberFormat react immediately
+    try {
+      Intl.defaultLocale = _locale.toString();
+    } catch (_) {}
+
+    // Debug log to help trace locale changes during runtime
+    // ignore: avoid_print
+    print('AppProvider: locale changed -> ${_locale.toString()}');
+
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
