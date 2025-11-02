@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/weather_details_model.dart';
 import '../models/weather_model.dart';
 import '../utils/app_theme.dart';
+import '../l10n/app_localizations.dart';
 
 /// Weather Details Grid - MSN Weather inspired
 /// Displays comprehensive weather information in a grid layout
@@ -18,6 +19,8 @@ class WeatherDetailsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Padding(
       padding: const EdgeInsets.all(AppTheme.spacingM),
       child: Column(
@@ -32,7 +35,7 @@ class WeatherDetailsGrid extends StatelessWidget {
                 color: AppTheme.white,
               ),
               const SizedBox(width: AppTheme.spacingS),
-              Text('Chi Tiết Thời Tiết', style: AppTheme.headlineSmall),
+              Text(l10n.weatherDetails, style: AppTheme.headlineSmall),
             ],
           ),
           const SizedBox(height: AppTheme.spacingM),
@@ -48,14 +51,14 @@ class WeatherDetailsGrid extends StatelessWidget {
             children: [
               _buildDetailCard(
                 icon: FontAwesomeIcons.temperatureHalf,
-                title: 'Cảm Giác Như',
+                title: l10n.feelsLike,
                 value: '${details.feelsLike.round()}°',
                 subtitle: details.getFeelsLikeDescription(weather.temperature),
                 color: _getTemperatureColor(details.feelsLike),
               ),
               _buildDetailCard(
                 icon: FontAwesomeIcons.wind,
-                title: 'Gió',
+                title: l10n.wind,
                 value: '${details.windSpeedKmh.round()} km/h',
                 subtitle: details.getWindDirection(),
                 color: AppTheme.lightBlue,
@@ -63,28 +66,28 @@ class WeatherDetailsGrid extends StatelessWidget {
               ),
               _buildDetailCard(
                 icon: FontAwesomeIcons.droplet,
-                title: 'Độ Ẩm',
+                title: l10n.humidity,
                 value: '${details.humidity}%',
                 subtitle: details.getHumidityDescription(),
                 color: AppTheme.blue,
               ),
               _buildDetailCard(
                 icon: FontAwesomeIcons.eye,
-                title: 'Tầm Nhìn',
+                title: l10n.visibility,
                 value: '${(details.visibility / 1000).toStringAsFixed(1)} km',
                 subtitle: details.getVisibilityDescription(),
                 color: AppTheme.lightPurple,
               ),
               _buildDetailCard(
                 icon: FontAwesomeIcons.gaugeHigh,
-                title: 'Áp Suất',
+                title: l10n.pressure,
                 value: '${details.pressure} hPa',
                 subtitle: details.getPressureDescription(),
                 color: AppTheme.orange,
               ),
               _buildDetailCard(
                 icon: FontAwesomeIcons.cloud,
-                title: 'Mây',
+                title: l10n.cloudiness,
                 value: '${details.cloudiness}%',
                 subtitle: _getCloudinessDescription(details.cloudiness),
                 color: AppTheme.grey,
@@ -94,7 +97,7 @@ class WeatherDetailsGrid extends StatelessWidget {
 
           // Min/Max Temperature Card (Full Width)
           const SizedBox(height: AppTheme.spacingM),
-          _buildMinMaxTempCard(),
+          _buildMinMaxTempCard(context),
         ],
       ),
     );
@@ -177,7 +180,9 @@ class WeatherDetailsGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildMinMaxTempCard() {
+  Widget _buildMinMaxTempCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -206,7 +211,7 @@ class WeatherDetailsGrid extends StatelessWidget {
                   ),
                   const SizedBox(height: AppTheme.spacingXS),
                   Text(
-                    'Thấp Nhất',
+                    l10n.minTemp,
                     style: AppTheme.bodySmall.copyWith(
                       color: AppTheme.white.withOpacity(0.7),
                     ),
@@ -241,7 +246,7 @@ class WeatherDetailsGrid extends StatelessWidget {
                   ),
                   const SizedBox(height: AppTheme.spacingXS),
                   Text(
-                    'Cao Nhất',
+                    l10n.maxTemp,
                     style: AppTheme.bodySmall.copyWith(
                       color: AppTheme.white.withOpacity(0.7),
                     ),
