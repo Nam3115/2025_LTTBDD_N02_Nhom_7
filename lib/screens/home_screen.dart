@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../l10n/app_localizations.dart';
 import '../models/weather_model.dart';
 import '../models/forecast_model.dart';
 import '../models/air_quality_model.dart';
@@ -146,6 +147,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -168,14 +171,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Lỗi: $_errorMessage',
+                        '${l10n.error}: $_errorMessage',
                         style: const TextStyle(color: Colors.white),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton(
                         onPressed: _fetchWeather,
-                        child: const Text('Thử lại'),
+                        child: Text(l10n.retry),
                       ),
                     ],
                   ),
@@ -190,14 +193,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildHeader(),
+                        _buildHeader(l10n),
                         const SizedBox(height: 32),
-                        _buildCurrentWeather(),
+                        _buildCurrentWeather(l10n),
                         const SizedBox(height: 32),
                         if (_hourlyForecasts.isNotEmpty) ...[
-                          const Text(
-                            'Dự báo theo giờ',
-                            style: TextStyle(
+                          Text(
+                            l10n.hourlyForecast,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -206,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           HourlyForecastWidget(forecasts: _hourlyForecasts),
                         ],
                         const SizedBox(height: 24),
-                        _buildWeatherDetails(),
+                        _buildWeatherDetails(l10n),
                         const SizedBox(height: 24),
                       ],
                     ),
@@ -217,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppLocalizations l10n) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -229,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Icon(Icons.location_on, color: Colors.white, size: 20),
                 const SizedBox(width: 4),
                 Text(
-                  _weather?.cityName ?? 'Unknown',
+                  _weather?.cityName ?? l10n.myLocation,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -239,7 +242,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             Text(
-              DateFormat('EEEE, d MMMM yyyy').format(DateTime.now()),
+              DateFormat(
+                'EEEE, d MMMM yyyy',
+                Localizations.localeOf(context).toString(),
+              ).format(DateTime.now()),
               style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
           ],
@@ -279,7 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCurrentWeather() {
+  Widget _buildCurrentWeather(AppLocalizations l10n) {
     if (_weather == null) return const SizedBox();
 
     return Center(
@@ -302,7 +308,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Text(
-            Constants.getWeatherConditionInVietnamese(_weather!.mainCondition),
+            // Use translation keys for weather conditions (map in Constants or use l10n)
+            // Fallback to the raw condition if no translation exists
+            (AppLocalizations.of(
+                  context,
+                )?.translate(_weather!.mainCondition.toLowerCase()) ??
+                _weather!.mainCondition),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -326,7 +337,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 24),
               const Icon(Icons.thermostat, color: Colors.white70, size: 16),
               Text(
-                ' Cảm giác như ${_weather!.feelsLike.round()}°',
+                '${l10n.feelsLike} ${_weather!.feelsLike.round()}°',
                 style: const TextStyle(color: Colors.white70, fontSize: 16),
               ),
             ],
@@ -336,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildWeatherDetails() {
+  Widget _buildWeatherDetails(AppLocalizations l10n) {
     if (_weather == null) return const SizedBox();
 
     return GridView.count(
@@ -349,33 +360,41 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         WeatherDetailCard(
           icon: Icons.water_drop,
-          title: 'Độ ẩm',
+          title: l10n.humidity,
           value: '${_weather!.humidity}%',
         ),
         WeatherDetailCard(
           icon: Icons.air,
-          title: 'Tốc độ gió',
-          value: '${_weather!.windSpeed.toStringAsFixed(1)} m/s',
+          title: l10n.windSpeed,
+          value:
+              '${_weather!.windSpeed.toStringAsFixed(1)} ${l10n.getWindSpeedUnit ?? 'm/s'}',
         ),
         WeatherDetailCard(
           icon: Icons.compress,
-          title: 'Áp suất',
-          value: '${_weather!.pressure} hPa',
+          title: l10n.pressure,
+          value: '${_weather!.pressure} ${l10n.hectopascal}',
         ),
         WeatherDetailCard(
           icon: Icons.visibility,
-          title: 'Tầm nhìn',
-          value: '${(_weather!.visibility / 1000).toStringAsFixed(1)} km',
+          title: l10n.visibility,
+          value:
+              '${(_weather!.visibility / 1000).toStringAsFixed(1)} ${l10n.kilometer}',
         ),
         WeatherDetailCard(
           icon: Icons.wb_twilight,
-          title: 'Bình minh',
-          value: DateFormat('HH:mm').format(_weather!.sunrise),
+          title: l10n.sunrise,
+          value: DateFormat(
+            'HH:mm',
+            Localizations.localeOf(context).toString(),
+          ).format(_weather!.sunrise),
         ),
         WeatherDetailCard(
           icon: Icons.nights_stay,
-          title: 'Hoàng hôn',
-          value: DateFormat('HH:mm').format(_weather!.sunset),
+          title: l10n.sunset,
+          value: DateFormat(
+            'HH:mm',
+            Localizations.localeOf(context).toString(),
+          ).format(_weather!.sunset),
         ),
       ],
     );
