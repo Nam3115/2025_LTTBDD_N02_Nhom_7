@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/weather_model.dart';
 import '../models/forecast_model.dart';
@@ -31,6 +32,7 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
   List<WeatherAlert>? _alerts;
   bool _isLoading = true;
   String _errorMessage = '';
+  Object? _lastError;
   bool _isFetching = false; // Prevent multiple simultaneous fetches
   DateTime? _lastFetchTime; // Debounce fetches
   String _detailedAddress = ''; // Store detailed address
@@ -108,6 +110,7 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     if (mounted) {
       setState(() {
         _isLoading = true;
+        _lastError = null;
         _errorMessage = '';
       });
     }
@@ -165,7 +168,8 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
       print('Error fetching weather: $e');
       if (mounted) {
         setState(() {
-          _errorMessage = _getErrorMessage(e);
+          _lastError = e;
+          _errorMessage = _getErrorMessage(e, context);
           _isLoading = false;
         });
       }
@@ -176,21 +180,36 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
     }
   }
 
-  String _getErrorMessage(dynamic error) {
-    if (error.toString().contains('Permission')) {
-      return 'Cần cấp quyền truy cập vị trí';
-    } else if (error.toString().contains('Location')) {
-      return 'Không thể xác định vị trí của bạn';
-    } else if (error.toString().contains('Network') ||
-        error.toString().contains('SocketException')) {
-      return 'Không có kết nối internet';
-    } else if (error.toString().contains('TimeoutException')) {
-      return 'Kết nối quá chậm, vui lòng thử lại';
-    } else if (error.toString().contains('API')) {
-      return 'Lỗi API, vui lòng kiểm tra API key';
-    } else {
-      return 'Không thể tải thời tiết. Vui lòng thử lại sau.';
+  String _getErrorMessage(dynamic error, BuildContext context) {
+    // Fallback string-based mapping when specific exception types aren't
+    // available at compile time. We inspect the error message to guess
+    // the best localized string (keeps changes minimal and robust).
+    final l10n = AppLocalizations.of(context)!;
+    final msg = error?.toString().toLowerCase() ?? '';
+
+    if (msg.contains('permission') && msg.contains('den')) {
+      return l10n.errorLocationPermission;
     }
+    if (msg.contains('permission') && msg.contains('forever')) {
+      return l10n.errorLocationPermissionForever;
+    }
+    if (msg.contains('service') && msg.contains('enable')) {
+      return l10n.errorLocationService;
+    }
+    if (msg.contains('in progress') || msg.contains('already fetching')) {
+      return l10n.pleaseWait;
+    }
+    if (msg.contains('timeout') || msg.contains('unavailable')) {
+      return l10n.errorTimeout;
+    }
+    if (msg.contains('not found') || msg.contains('city')) {
+      return l10n.errorCityNotFound;
+    }
+    if (msg.contains('api') || msg.contains('invalid api')) {
+      return l10n.errorApi;
+    }
+
+    return l10n.errorLoadingWeather;
   }
 
   Future<void> _searchCity() async {
@@ -241,7 +260,8 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
       } catch (e) {
         if (mounted) {
           setState(() {
-            _errorMessage = _getErrorMessage(e);
+            _lastError = e;
+            _errorMessage = _getErrorMessage(e, context);
             _isLoading = false;
           });
         }
@@ -315,7 +335,7 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
           ),
           const SizedBox(height: AppTheme.spacingL),
           Text(
-            'Đang tải thời tiết...',
+            AppLocalizations.of(context)!.loadingWeather,
             style: AppTheme.titleMedium.copyWith(
               color: AppTheme.white.withOpacity(0.9),
             ),
@@ -326,26 +346,40 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
   }
 
   Widget _buildErrorState() {
+    final l10n = AppLocalizations.of(context)!;
     IconData errorIcon;
     String errorTitle;
     String errorSubtitle;
 
-    if (_errorMessage.contains('vị trí')) {
+    // Determine icon and title using string inspection of last error.
+    // This is more robust when specific exception classes are not present.
+    final msg = _lastError?.toString().toLowerCase() ?? '';
+    if (msg.contains('permission')) {
       errorIcon = Icons.location_off;
-      errorTitle = 'Lỗi Vị Trí';
+      if (msg.contains('forever') || msg.contains('permanently')) {
+        errorTitle = l10n.errorLocationPermissionForever;
+      } else if (msg.contains('service')) {
+        errorTitle = l10n.errorLocationService;
+      } else if (msg.contains('in progress') ||
+          msg.contains('already fetching')) {
+        errorTitle = l10n.pleaseWait;
+      } else {
+        errorTitle = l10n.errorLocationPermission;
+      }
       errorSubtitle = _errorMessage;
-    } else if (_errorMessage.contains('internet') ||
-        _errorMessage.contains('Kết nối')) {
+    } else if (msg.contains('timeout') ||
+        msg.contains('unavailable') ||
+        msg.contains('network')) {
       errorIcon = Icons.wifi_off;
-      errorTitle = 'Không Có Kết Nối';
+      errorTitle = l10n.errorNetwork;
       errorSubtitle = _errorMessage;
-    } else if (_errorMessage.contains('API')) {
+    } else if (msg.contains('api') || msg.contains('invalid api')) {
       errorIcon = Icons.key_off;
-      errorTitle = 'Lỗi API';
+      errorTitle = l10n.errorApi;
       errorSubtitle = _errorMessage;
     } else {
       errorIcon = Icons.cloud_off;
-      errorTitle = 'Không Thể Tải Thời Tiết';
+      errorTitle = l10n.errorLoadingWeather;
       errorSubtitle = _errorMessage;
     }
 
@@ -385,7 +419,7 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                 _fetchWeather();
               },
               icon: const Icon(Icons.refresh),
-              label: const Text('Thử lại'),
+              label: Text(l10n.retry),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.white.withOpacity(0.3),
                 foregroundColor: AppTheme.white,
@@ -402,7 +436,7 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
             TextButton.icon(
               onPressed: _searchCity,
               icon: const Icon(Icons.search),
-              label: const Text('Tìm thành phố'),
+              label: Text(l10n.searchCity),
               style: TextButton.styleFrom(foregroundColor: AppTheme.white),
             ),
           ],
@@ -497,7 +531,10 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat('EEEE, d MMMM', 'vi_VN').format(DateTime.now()),
+                  DateFormat(
+                    'EEEE, d MMMM',
+                    Localizations.localeOf(context).toString(),
+                  ).format(DateTime.now()),
                   style: AppTheme.bodyMedium.copyWith(
                     color: AppTheme.white.withOpacity(0.7),
                   ),
@@ -609,20 +646,20 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
       child: Row(
         children: [
           InfoChipCard(
-            label: 'Độ ẩm',
+            label: AppLocalizations.of(context)!.humidity,
             value: '${_weather!.humidity}%',
             icon: Icons.water_drop,
           ),
           const SizedBox(width: AppTheme.spacingS),
           InfoChipCard(
-            label: 'Gió',
+            label: AppLocalizations.of(context)!.wind,
             value: '$windSpeed $windUnit',
             icon: Icons.air,
           ),
           const SizedBox(width: AppTheme.spacingS),
           if (_airQuality != null)
             InfoChipCard(
-              label: 'AQI',
+              label: AppLocalizations.of(context)!.airQuality,
               value: _airQuality!.aqi.toString(),
               icon: Icons.eco,
               backgroundColor: Color(
@@ -632,7 +669,7 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
           const SizedBox(width: AppTheme.spacingS),
           if (_uvIndex != null)
             InfoChipCard(
-              label: 'UV',
+              label: AppLocalizations.of(context)!.uvIndex,
               value: _uvIndex!.value.round().toString(),
               icon: Icons.wb_sunny_outlined,
               backgroundColor: Color(_uvIndex!.color).withOpacity(0.5),
@@ -714,27 +751,27 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
       childAspectRatio: 1.8, // Tăng tỷ lệ để cards thấp hơn, tránh overflow
       children: [
         ModernWeatherCard(
-          title: 'Cảm giác như',
+          title: AppLocalizations.of(context)!.feelsLike,
           value: '$feelsLike$tempUnit',
           icon: Icons.thermostat,
           iconColor: Colors.orange[300],
         ),
         ModernWeatherCard(
-          title: 'Tốc độ gió',
+          title: AppLocalizations.of(context)!.windSpeed,
           value: windSpeed,
           subtitle: windUnit,
           icon: Icons.air,
           iconColor: Colors.blue[300],
         ),
         ModernWeatherCard(
-          title: 'Áp suất',
+          title: AppLocalizations.of(context)!.pressure,
           value: '${_weather!.pressure}',
           subtitle: 'hPa',
           icon: Icons.speed,
           iconColor: Colors.purple[300],
         ),
         ModernWeatherCard(
-          title: 'Tầm nhìn',
+          title: AppLocalizations.of(context)!.visibility,
           value: visibility,
           subtitle: visibilityUnit,
           icon: Icons.visibility,
@@ -747,28 +784,34 @@ class _ModernHomeScreenState extends State<ModernHomeScreen>
   Widget _buildAdditionalInfo() {
     if (_weather == null) return const SizedBox.shrink();
 
-    final sunrise = DateFormat('HH:mm').format(_weather!.sunrise);
-    final sunset = DateFormat('HH:mm').format(_weather!.sunset);
+    final sunrise = DateFormat(
+      'HH:mm',
+      Localizations.localeOf(context).toString(),
+    ).format(_weather!.sunrise);
+    final sunset = DateFormat(
+      'HH:mm',
+      Localizations.localeOf(context).toString(),
+    ).format(_weather!.sunset);
 
     return Column(
       children: [
         CompactWeatherCard(
           icon: Icons.wb_sunny_outlined,
-          label: 'Mặt trời mọc',
+          label: AppLocalizations.of(context)!.sunrise,
           value: sunrise,
           iconColor: Colors.amber[300],
         ),
         const SizedBox(height: AppTheme.spacingS),
         CompactWeatherCard(
           icon: Icons.nightlight_round,
-          label: 'Mặt trời lặn',
+          label: AppLocalizations.of(context)!.sunset,
           value: sunset,
           iconColor: Colors.deepOrange[300],
         ),
         const SizedBox(height: AppTheme.spacingS),
         CompactWeatherCard(
           icon: Icons.water_drop_outlined,
-          label: 'Độ ẩm',
+          label: AppLocalizations.of(context)!.humidity,
           value: '${_weather!.humidity}%',
           iconColor: Colors.lightBlue[300],
         ),
