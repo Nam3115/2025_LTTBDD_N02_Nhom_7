@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/app_theme.dart';
+import '../l10n/app_localizations.dart';
 
 /// Widget để preview tất cả các background gradient
 /// Dùng để test và xem các màu sắc thay đổi theo thời gian và thời tiết
@@ -8,99 +9,96 @@ class BackgroundPreviewWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Background Preview'),
+        title: Text(l10n.viewBackgrounds),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildSection('TRỜI QUANG - THEO THỜI GIAN', [
+          _buildSection(l10n.viewBackgrounds, [
             _buildGradientCard(
-              'Bình Minh (5:00-7:00)',
+              '${l10n.dawn} (5:00-7:00)',
               AppTheme.clearSkyDawnGradient,
               '🌅',
             ),
             _buildGradientCard(
-              'Buổi Sáng (7:00-11:00)',
+              '${l10n.morning} (7:00-11:00)',
               AppTheme.clearSkyMorningGradient,
               '☀️',
             ),
             _buildGradientCard(
-              'Ban Trưa (11:00-15:00)',
+              '${l10n.noon} (11:00-15:00)',
               AppTheme.clearSkyNoonGradient,
               '🌞',
             ),
             _buildGradientCard(
-              'Chiều Tà (15:00-18:00)',
+              '${l10n.afternoon} (15:00-18:00)',
               AppTheme.clearSkyAfternoonGradient,
               '🌇',
             ),
             _buildGradientCard(
-              'Hoàng Hôn (18:00-19:30)',
+              '${l10n.dusk} (18:00-19:30)',
               AppTheme.clearSkySunsetGradient,
               '🌆',
             ),
             _buildGradientCard(
-              'Chạng Vạng (19:30-21:00)',
+              '${l10n.evening} (19:30-21:00)',
               AppTheme.clearSkyDuskGradient,
               '🌃',
             ),
             _buildGradientCard(
-              'Ban Đêm (21:00-5:00)',
+              '${l10n.night} (21:00-5:00)',
               AppTheme.clearSkyNightGradient,
               '🌙',
             ),
           ]),
           const SizedBox(height: 24),
-          _buildSection('NHIỀU MÂY', [
+          _buildSection(l10n.clouds, [
             _buildGradientCard(
-              'Mây Ban Ngày',
+              '${l10n.clouds} (Day)',
               AppTheme.cloudyDayGradient,
               '☁️',
             ),
             _buildGradientCard(
-              'Mây Ban Đêm',
+              '${l10n.clouds} (Night)',
               AppTheme.cloudyNightGradient,
               '☁️🌙',
             ),
           ]),
           const SizedBox(height: 24),
-          _buildSection('MƯA', [
+          _buildSection(l10n.rain, [
             _buildGradientCard(
-              'Mưa Ban Ngày',
+              '${l10n.rain} (Day)',
               AppTheme.rainyDayGradient,
               '🌧️',
             ),
             _buildGradientCard(
-              'Mưa Ban Đêm',
+              '${l10n.rain} (Night)',
               AppTheme.rainyNightGradient,
               '🌧️🌙',
             ),
           ]),
           const SizedBox(height: 24),
-          _buildSection('THỜI TIẾT ĐẶC BIỆT', [
+          _buildSection(l10n.weatherDetails, [
             _buildGradientCard(
-              'Giông Bão',
+              l10n.thunderstorm,
               AppTheme.thunderstormGradient,
               '⛈️',
             ),
+            _buildGradientCard(l10n.snow, AppTheme.snowDayGradient, '❄️'),
             _buildGradientCard(
-              'Tuyết Ban Ngày',
-              AppTheme.snowDayGradient,
-              '❄️',
-            ),
-            _buildGradientCard(
-              'Tuyết Ban Đêm',
+              '${l10n.snow} (Night)',
               AppTheme.snowNightGradient,
               '❄️🌙',
             ),
-            _buildGradientCard('Sương Mù', AppTheme.mistGradient, '🌫️'),
+            _buildGradientCard(l10n.mist, AppTheme.mistGradient, '🌫️'),
           ]),
           const SizedBox(height: 24),
-          _buildTestSection(),
+          _buildTestSection(context),
         ],
       ),
     );
@@ -170,26 +168,27 @@ class BackgroundPreviewWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildTestSection() {
+  Widget _buildTestSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'TEST ĐỘNG - GRADIENT THEO THỜI GIAN THỰC',
-          style: TextStyle(
+        Text(
+          l10n.viewBackgrounds,
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
           ),
         ),
         const SizedBox(height: 12),
-        _buildDynamicTestCard('Clear', DateTime.now()),
-        _buildDynamicTestCard('Clouds', DateTime.now()),
-        _buildDynamicTestCard('Rain', DateTime.now()),
+        _buildDynamicTestCard(context, 'Clear', DateTime.now()),
+        _buildDynamicTestCard(context, 'Clouds', DateTime.now()),
+        _buildDynamicTestCard(context, 'Rain', DateTime.now()),
         const SizedBox(height: 16),
-        const Text(
-          '💡 TIP: Thay đổi giờ trên thiết bị để xem background thay đổi!',
-          style: TextStyle(
+        Text(
+          l10n.viewBackgroundsDesc,
+          style: const TextStyle(
             fontSize: 14,
             fontStyle: FontStyle.italic,
             color: Colors.grey,
@@ -199,7 +198,12 @@ class BackgroundPreviewWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildDynamicTestCard(String condition, DateTime dateTime) {
+  Widget _buildDynamicTestCard(
+    BuildContext context,
+    String condition,
+    DateTime dateTime,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
     final gradient = AppTheme.getDynamicGradient(
       weatherCondition: condition,
       dateTime: dateTime,
@@ -228,7 +232,7 @@ class BackgroundPreviewWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '$condition - Hiện tại',
+              '$condition - ${l10n.now}',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
